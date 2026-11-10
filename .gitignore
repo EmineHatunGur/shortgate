@@ -1,0 +1,31 @@
+# Sanal ortam
+.venv/
+venv/
+
+# Gizli değerler
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Araç önbellekleri
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Django
+db.sqlite3
+*.log
+staticfiles/
+media/
+
+# Editör / işletim sistemi
+.vscode/
+.idea/
+.DS_Store
+main.py
