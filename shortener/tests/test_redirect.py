@@ -26,4 +26,3 @@ def test_click_counter_increments(client):
 
 def test_unknown_code_returns_404(client):
     assert client.get("/notfound").status_code == 404
-
