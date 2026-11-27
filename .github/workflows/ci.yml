@@ -47,10 +47,37 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: .
-          push: false
+          load: true
           tags: shortgate:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Smoke test
+        run: |
+          docker network create smoke
+          docker run -d --name db --network smoke \
+            -e POSTGRES_DB=shortgate -e POSTGRES_USER=shortgate \
+            -e POSTGRES_PASSWORD=ci-only-password postgres:17
+          for i in $(seq 1 30); do
+            docker exec db pg_isready -U shortgate -d shortgate && break
+            sleep 2
+          done
+          docker run -d --name web --network smoke -p 8000:8000 \
+            -e DJANGO_SECRET_KEY=ci-only-not-a-real-secret \
+            -e DJANGO_DEBUG=false \
+            -e DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1 \
+            -e POSTGRES_DB=shortgate -e POSTGRES_USER=shortgate \
+            -e POSTGRES_PASSWORD=ci-only-password \
+            -e POSTGRES_HOST=db -e POSTGRES_PORT=5432 \
+            shortgate:ci sh -c "python manage.py migrate --noinput && gunicorn core.wsgi:application --bind 0.0.0.0:8000 --workers 2"
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:8000/health && exit 0
+            sleep 2
+          done
+          echo "health check failed"
+          exit 1
+      - name: Show container logs on failure
+        if: failure()
+        run: docker logs web
 
   test:
     runs-on: ubuntu-latest
